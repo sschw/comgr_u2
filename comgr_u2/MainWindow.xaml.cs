@@ -78,7 +78,7 @@ namespace comgr_u2
             alpha = alpha + 0.05f;
 
             Vector2[] pointsProj = new Vector2[points.Length];
-            
+
             List<Triangle> triangles = new List<Triangle>();
             for (int i = 0; i < triangleIdx.Length / 3; i++)
             {
@@ -98,8 +98,8 @@ namespace comgr_u2
                 t.Texture = tex;
                 t.TransformNormal(mv);
                 t.TransformPos(mv * proj);
-                
-                    
+
+
                 if (a.TransformedN.Z < 0.0001f)
                 {
                     triangles.Add(t);
@@ -126,13 +126,22 @@ namespace comgr_u2
                 int nextMinX = Bitmap.PixelWidth - (maxX - minX);
                 int index = minY * Bitmap.PixelWidth + minX;
                 var det = 1f / (t.AB.X * t.AC.Y - t.AC.X * t.AB.Y);
+                var ap = new Vector2(minX - t.A.TransformedPos.X, minY - t.A.TransformedPos.Y);
+                var uy = det * (t.AC.Y * ap.X - t.AC.X * ap.Y);
+                var uxstep = det * t.AC.Y;
+                var uystep = det * -t.AC.X;
+
+                var vy = det * (-t.AB.Y * ap.X + t.AB.X * ap.Y);
+                var vxstep = det * -t.AB.Y;
+                var vystep = det * t.AB.X;
                 for (int y = t.MinY(); y < t.MaxY(); y++)
                 {
+                    var u = uy;
+                    var v = vy;
                     for (int x = t.MinX(); x < t.MaxX(); x++, index++)
                     {
-                        var ap = new Vector2(x - t.A.TransformedPos.X, y - t.A.TransformedPos.Y);
-                        var u = (t.AC.Y * ap.X - t.AC.X * ap.Y) * det;
-                        var v = (-t.AB.Y * ap.X + t.AB.X * ap.Y) * det;
+                        //var u = (t.AC.Y * ap.X - t.AC.X * ap.Y) * det;
+                        //var v = (-t.AB.Y * ap.X + t.AB.X * ap.Y) * det;
                         if (u >= 0 && v >= 0 && (u + v) < 1)
                         {
                             float depth = t.A.TransformedPos.W + u * (t.B.TransformedPos.W - t.A.TransformedPos.W) + v * (t.C.TransformedPos.W - t.A.TransformedPos.W);
@@ -153,14 +162,20 @@ namespace comgr_u2
 
                             }
                         }
+                        u += uxstep;
+                        v += vxstep;
                     }
+                    uy += uystep;
+                    vy += vystep;
+                    //ap.Y++;
                     index += nextMinX;
                 }
             }
 
             byte[] pixels = new byte[w * h * 3];
 
-            for (int i = 0, j = 0; i < w * h; i++, j+=3) {
+            for (int i = 0, j = 0; i < w * h; i++, j += 3)
+            {
                 // Diffuse
                 Vector3 triangleToLight = Vector3.Normalize(light - posbuffer[i]);
                 float diffuse = Math.Max((Vector3.Dot(normalbuffer[i], triangleToLight)) * intensityD, 0);
@@ -180,7 +195,7 @@ namespace comgr_u2
                 pixels[j + 1] = c.G;
                 pixels[j + 2] = c.B;
             }
-            
+
 
             Bitmap.Lock();
             Bitmap.WritePixels(new Int32Rect(0, 0, w, h), pixels, w * 3, 0);
