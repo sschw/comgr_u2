@@ -78,13 +78,7 @@ namespace comgr_u2
             alpha = alpha + 0.05f;
 
             Vector2[] pointsProj = new Vector2[points.Length];
-
-            //for (int i = 0; i < points.Length; i++)
-            //{
-            //    Vector3 p = points[i];
-            //    Vector4 l = Vector4.Transform(p, mvp);
-            //    pointsProj[i] = new Vector2(w * l.X / l.Z + w / 2f, w * l.Y / l.Z + h / 2f);//new Point(l.X/l.W, l.Y/l.W);
-            //}
+            
             List<Triangle> triangles = new List<Triangle>();
             for (int i = 0; i < triangleIdx.Length / 3; i++)
             {
@@ -172,7 +166,7 @@ namespace comgr_u2
                 float diffuse = Math.Max((Vector3.Dot(normalbuffer[i], triangleToLight)) * intensityD, 0);
 
                 // Specular
-                Vector3 toEye = -posbuffer[i];
+                Vector3 toEye = /*Vector3.Normalize(*/-posbuffer[i]/*)*/;
                 Vector3 r = Vector3.Normalize((normalbuffer[i] * Vector3.Dot(triangleToLight, normalbuffer[i]) - triangleToLight) * 2);
 
                 float specular = ((float)Math.Pow(Math.Max(Vector3.Dot(r, toEye), 0), k)) * intensityS;
