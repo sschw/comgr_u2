@@ -44,12 +44,12 @@ namespace comgr_u2
             return returnColor;
         }
 
-        public Vector3 GetTexture(float u, float v)
+        public Vector2 GetTexture(float u, float v)
         {
-            if (Texture == null) return new Vector3(1, 1, 1);
+            if (Texture == null) return new Vector2(1, 1);
             Vector3 textureCoordinates = A.HomogeneUV + u * (B.HomogeneUV - A.HomogeneUV) + v * (C.HomogeneUV - A.HomogeneUV);
             Vector2 uv = new Vector2(textureCoordinates.X, textureCoordinates.Y) / textureCoordinates.Z;
-            return Texture.Interpolate(uv);
+            return uv;
         }
 
         public void TransformNormal(Matrix4x4 matrix)
