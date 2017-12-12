@@ -22,7 +22,7 @@ namespace comgr_u2
     public partial class MainWindow : Window
     {
         public WriteableBitmap Bitmap { get; set; }
-        public Vector3 light = new Vector3(1, 1, -5);
+        public Vector3 light = new Vector3(4, -3, -5);
 
 
         Vector3[] points = new Vector3[]
@@ -49,7 +49,7 @@ namespace comgr_u2
         float screendistance = 3.8f;
         float intensityD = 0.6f;
         float intensityS = 0.6f;
-        int k = 30;
+        int k = 10;
         Texture tex = new Texture("./texture.bmp");
 
         public MainWindow()
@@ -174,15 +174,18 @@ namespace comgr_u2
 
             byte[] pixels = new byte[w * h * 3];
 
-            for (int i = 0, j = 0; i < w * h; i++, j += 3)
+            Parallel.For(0, w * h, i =>
             {
+                if (zbuffer[i] == float.PositiveInfinity) return;
+                int j = i * 3;
                 // Diffuse
                 Vector3 triangleToLight = Vector3.Normalize(light - posbuffer[i]);
                 float diffuse = Math.Max((Vector3.Dot(normalbuffer[i], triangleToLight)) * intensityD, 0);
 
                 // Specular
-                Vector3 toEye = /*Vector3.Normalize(*/-posbuffer[i]/*)*/;
-                Vector3 r = Vector3.Normalize((normalbuffer[i] * Vector3.Dot(triangleToLight, normalbuffer[i]) - triangleToLight) * 2);
+                // Deactivate this normalize will make the specular calculation fast.
+                Vector3 toEye = Vector3.Normalize(-posbuffer[i]);
+                Vector3 r = Vector3.Normalize(normalbuffer[i] * Vector3.Dot(triangleToLight, normalbuffer[i]) * 2 - triangleToLight);
 
                 float specular = ((float)Math.Pow(Math.Max(Vector3.Dot(r, toEye), 0), k)) * intensityS;
                 Vector3 white = new Vector3(1, 1, 1);
@@ -194,7 +197,7 @@ namespace comgr_u2
                 pixels[j] = c.R;
                 pixels[j + 1] = c.G;
                 pixels[j + 2] = c.B;
-            }
+            });
 
 
             Bitmap.Lock();
