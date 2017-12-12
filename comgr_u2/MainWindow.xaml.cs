@@ -123,8 +123,8 @@ namespace comgr_u2
                 int minY = t.MinY();
                 int maxX = t.MaxX();
                 int maxY = t.MaxY();
-                int nextMinX = Bitmap.PixelWidth - (maxX - minX);
-                int index = minY * Bitmap.PixelWidth + minX;
+                int nextMinX = w - (maxX - minX);
+                int index = minY * w + minX;
                 var det = 1f / (t.AB.X * t.AC.Y - t.AC.X * t.AB.Y);
                 var ap = new Vector2(minX - t.A.TransformedPos.X, minY - t.A.TransformedPos.Y);
                 var uy = det * (t.AC.Y * ap.X - t.AC.X * ap.Y);
@@ -183,7 +183,6 @@ namespace comgr_u2
                 float diffuse = Math.Max((Vector3.Dot(normalbuffer[i], triangleToLight)) * intensityD, 0);
 
                 // Specular
-                // Deactivate this normalize will make the specular calculation fast.
                 Vector3 toEye = Vector3.Normalize(-posbuffer[i]);
                 Vector3 r = Vector3.Normalize(normalbuffer[i] * Vector3.Dot(triangleToLight, normalbuffer[i]) * 2 - triangleToLight);
 
