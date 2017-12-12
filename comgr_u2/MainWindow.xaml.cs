@@ -22,7 +22,7 @@ namespace comgr_u2
     public partial class MainWindow : Window
     {
         public WriteableBitmap Bitmap { get; set; }
-        public Vector3 light = new Vector3(0, 5, 0);
+        public Vector3 light = new Vector3(1, 1, -5);
 
 
         Vector3[] points = new Vector3[]
@@ -45,6 +45,7 @@ namespace comgr_u2
             { 1, 0, 4 },
             { 1, 4, 5 }
         };
+        Vector3 ambientLight = new Vector3(0.0f, 0.0f, 0.0f);
         float screendistance = 3.8f;
         float intensityD = 0.6f;
         float intensityS = 0.6f;
@@ -73,7 +74,7 @@ namespace comgr_u2
                 0, w, h / 2, 0,
                 0, 0, 0, 0,
                 0, 0, 1, 0));
-            Matrix4x4 mvp = rotMat * transMat * proj;
+            Matrix4x4 mv = rotMat * transMat;
             alpha = alpha + 0.05f;
 
             Vector2[] pointsProj = new Vector2[points.Length];
@@ -90,7 +91,7 @@ namespace comgr_u2
                 Vertex a = new Vertex(points[triangleIdx[i, 0]], Colors.Red.AsVector());
                 Vertex b = new Vertex(points[triangleIdx[i, 1]], Colors.Green.AsVector());
                 Vertex c = new Vertex(points[triangleIdx[i, 2]], Colors.Blue.AsVector());
-                Vector3 n = Vector3.Normalize(Vector3.Cross(b.Pos - a.Pos, c.Pos - a.Pos));
+                Vector3 n = Vector3.Normalize(Vector3.Cross(c.Pos - a.Pos, b.Pos - a.Pos));
                 // Normal facing camera
                 a.N = n;
                 b.N = n;
@@ -101,25 +102,23 @@ namespace comgr_u2
                 c.UV = new Vector2(1, 0);
                 Triangle t = new Triangle(a, b, c);
                 t.Texture = tex;
-                t.Transform(mvp);
-
-
-                // Inverse of mvp doesn't work
-                Vector4 tmpN = Vector4.Transform(n, rotMat);
-                Vector3 transfN = new Vector3(tmpN.X, tmpN.Y, tmpN.Z);
-                a.TransformedN = transfN;
-                b.TransformedN = transfN;
-                c.TransformedN = transfN;
+                t.TransformNormal(mv);
+                t.TransformPos(mv * proj);
                 
                     
-                if (a.TransformedN.Z > -0.0001f)
+                if (a.TransformedN.Z < 0.0001f)
                 {
                     triangles.Add(t);
                 }
             }
 
-            byte[] pixels = new byte[w*h*3];
-            float[] zbuffer = new float[w*h*3];
+            float[] zbuffer = new float[w * h * 3];
+            Vector3[] colorbuffer = new Vector3[w * h];
+            Vector2[] textureUVbuffer = new Vector2[w * h];
+            Vector3[] normalbuffer = new Vector3[w * h];
+            Vector3[] toEyebuffer = new Vector3[w * h];
+            Texture[] texturesbuffer = new Texture[w * h];
+
             for (int i = 0; i < zbuffer.Length; i++)
                 zbuffer[i] = float.PositiveInfinity;
 
@@ -151,6 +150,8 @@ namespace comgr_u2
                 }
             }*/
 
+            byte[] pixels = new byte[w * h * 3];
+
             foreach (Triangle t in triangles)
             {
                 int minX = t.MinX();
@@ -158,12 +159,12 @@ namespace comgr_u2
                 int maxX = t.MaxX();
                 int maxY = t.MaxY();
                 int nextMinX = Bitmap.PixelWidth - (maxX - minX);
-                int colorPos = (minY*Bitmap.PixelWidth + minX) * 3;
-                int zbufferPos = minY*Bitmap.PixelWidth + minX;
+                int valuePos3steps = (minY*Bitmap.PixelWidth + minX) * 3;
+                int valuePos1step = minY*Bitmap.PixelWidth + minX;
                 var det = 1f / (t.AB.X * t.AC.Y - t.AC.X * t.AB.Y);
                 for (int y = t.MinY(); y < t.MaxY(); y++)
                 {
-                    for (int x = t.MinX(); x < t.MaxX(); x++, colorPos += 3, zbufferPos++)
+                    for (int x = t.MinX(); x < t.MaxX(); x++, valuePos3steps += 3, valuePos1step++)
                     {
                         var ap = new Vector2(x - t.A.TransformedPos.X, y-t.A.TransformedPos.Y);
                         var u = (t.AC.Y * ap.X - t.AC.X * ap.Y) * det;
@@ -172,28 +173,33 @@ namespace comgr_u2
                         {
                             float depth = t.A.TransformedPos.W + u * (t.B.TransformedPos.W - t.A.TransformedPos.W) + v * (t.C.TransformedPos.W - t.A.TransformedPos.W);
                             
-                            if (zbuffer[zbufferPos] > depth && depth > screendistance) {
-                                zbuffer[zbufferPos] = depth;
+                            if (zbuffer[valuePos1step] > depth && depth > screendistance) {
+                                zbuffer[valuePos1step] = depth;
+                                Vector3 pos = t.GetPosition(u, v);
+                                pos.X /= w;
+                                pos.Y /= w;
                                 Vector3 cc = t.GetColor(u, v);
                                 Vector3 ct = t.GetTexture(u, v);
 
                                 // Diffuse
-                                Vector3 triangleToLight = Vector3.Normalize(light - t.A.Pos);
+                                Vector3 triangleToLight = Vector3.Normalize(light - pos);
                                 float diffuse = Math.Max((Vector3.Dot(t.A.TransformedN, triangleToLight)) * intensityD, 0);
 
                                 // Specular
-                                Vector3 eye = -t.A.Pos;
-                                float specular = Math.Max(((float) Math.Pow(Vector3.Dot(Vector3.Normalize((-t.A.TransformedN * Vector3.Dot(light, -t.A.TransformedN) - light) * 2), eye), k)) * intensityS, 0);
+                                Vector3 toEye = -pos;
+                                Vector3 r = Vector3.Normalize((t.A.TransformedN * Vector3.Dot(triangleToLight, t.A.TransformedN) - triangleToLight) * 2);
 
-                                Color c = (cc * ct * diffuse + cc* ct * specular).AsColor();
-                                pixels[colorPos] = c.R;
-                                pixels[colorPos + 1] = c.G;
-                                pixels[colorPos + 2] = c.B;
+                                float specular = ((float) Math.Pow(Math.Max(Vector3.Dot(r, toEye), 0), k)) * intensityS;
+                                Vector3 white = new Vector3(1, 1, 1);
+                                Color c = (ambientLight + cc * ct * diffuse + white * specular).AsColor();
+                                pixels[valuePos3steps] = c.R;
+                                pixels[valuePos3steps + 1] = c.G;
+                                pixels[valuePos3steps + 2] = c.B;
                             }
                         }
                     }
-                    colorPos += nextMinX * 3;
-                    zbufferPos += nextMinX;
+                    valuePos3steps += nextMinX * 3;
+                    valuePos1step += nextMinX;
                 }
             }
 

@@ -11,10 +11,13 @@ namespace comgr_u2
     class Texture
     {
         private readonly Bitmap tex;
+        private readonly byte[] data;
 
         public Texture(string path)
         {
             tex = new Bitmap(path);
+
+
         }
 
         public Vector3 Interpolate(Vector2 uv)

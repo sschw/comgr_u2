@@ -35,21 +35,33 @@ namespace comgr_u2
 
         public Vector4 TransformedPos;
 
+        public Vector4 HomogenePosition
+        {
+            get
+            {
+                return new Vector4(TransformedPos.X / TransformedPos.W, TransformedPos.Y / TransformedPos.W, 1, 1 / TransformedPos.W);
+            }
+        }
+
         public Vertex(Vector3 pos, Vector3 color)
         {
             Pos = pos;
             Color = color;
         }
 
-        public void Transform(Matrix4x4 matrix)
+        public void TransformPos(Matrix4x4 matrix)
+        {
+            TransformedPos = Vector4.Transform(Pos, matrix);
+            TransformedPos.X /= TransformedPos.W;
+            TransformedPos.Y /= TransformedPos.W;
+        }
+
+        public void TransformNormal(Matrix4x4 matrix)
         {
             Matrix4x4 normalMatrix;
             Matrix4x4.Invert(matrix, out normalMatrix);
             normalMatrix = Matrix4x4.Transpose(normalMatrix);
 
-            TransformedPos = Vector4.Transform(Pos, matrix);
-            TransformedPos.X /= TransformedPos.W;
-            TransformedPos.Y /= TransformedPos.W;
             TransformedN = Vector3.TransformNormal(N, normalMatrix);
         }
     }

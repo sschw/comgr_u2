@@ -28,12 +28,20 @@ namespace comgr_u2
             C = c;
         }
 
+        public Vector3 GetPosition(float u, float v)
+        {
+            Vector4 pos = A.HomogenePosition + u * (B.HomogenePosition - A.HomogenePosition) + v * (C.HomogenePosition - A.HomogenePosition);
+
+            Vector3 retPos = new Vector3(pos.X, pos.Y, pos.Z) / pos.W;
+            return retPos;
+        }
+
         public Vector3 GetColor(float u, float v)
         {
             Vector4 color = A.HomogeneColor + u * (B.HomogeneColor - A.HomogeneColor) + v * (C.HomogeneColor - A.HomogeneColor);
 
             Vector3 returnColor = new Vector3(color.X, color.Y, color.Z) / color.W;
-            return returnColor;//Vector3.Multiply(color, texture);
+            return returnColor;
         }
 
         public Vector3 GetTexture(float u, float v)
@@ -44,11 +52,19 @@ namespace comgr_u2
             return Texture.Interpolate(uv);
         }
 
-        public void Transform(Matrix4x4 matrix)
+        public void TransformNormal(Matrix4x4 matrix)
         {
-            A.Transform(matrix);
-            B.Transform(matrix);
-            C.Transform(matrix);
+            A.TransformNormal(matrix);
+            B.TransformNormal(matrix);
+            C.TransformNormal(matrix);
+        }
+
+        public void TransformPos(Matrix4x4 matrix)
+        {
+            A.TransformPos(matrix);
+            B.TransformPos(matrix);
+            C.TransformPos(matrix);
+
             AB = (B.TransformedPos - A.TransformedPos).ToVec2();
             AC = (C.TransformedPos - A.TransformedPos).ToVec2();
         }
