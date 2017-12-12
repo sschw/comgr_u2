@@ -30,13 +30,18 @@ namespace comgr_u2
             //return tex.GetPixel((int) (uv.X * tex.Width), (int) (uv.Y * tex.Height)).AsVector();
 
             /* Bilinear */
-            int posU = (int)(uv.X * (width-1));
-            int posV = (int)(uv.Y * (height-1));
+            float uw = uv.X * (width - 1);
+            float vh = uv.Y * (height - 1);
+            int posU = (int) uw;
+            int posV = (int) vh;
+            int posU1 = (posU + 1) % width;
+            int posV1 = (posV + 1) % height;
             Vector3 uv00 = data[posU, posV];
-            Vector3 uv10 = data[(posU + 1) % width, posV];
-            Vector3 uv01 = data[posU, (posV + 1) % height];
-            Vector3 uv11 = data[(posU + 1) % width, (posV + 1) % height];
-            return (uv10 * uv.X + uv00 * (1 - uv.X)) * (1 - uv.Y) + (uv11 * uv.X + uv01 * (1 - uv.X)) * uv.Y;
+            Vector3 uv10 = data[posU1, posV];
+            Vector3 uv01 = data[posU, posV1];
+            Vector3 uv11 = data[posU1, posV1];
+            //return (uv10 * uv.X + uv00 * (1 - uv.X)) * (1 - uv.Y) + (uv11 * uv.X + uv01 * (1 - uv.X)) * uv.Y;
+            return Vector3.Lerp(Vector3.Lerp(uv00, uv10, uw-posU), Vector3.Lerp(uv11, uv01, uw-posU), vh-posV);
         }
     }
 }
